@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+  
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./prisma/dev.db"
+}
+
+model AgentLog {
+  id             String   @id @default(uuid())
+  agentId        String
+  intent         String
+  timestamp      DateTime
+  outcome        String
+  toolsCalled    Json
+  responseTime   Int
+  verification   VerificationLog?
+  anomaly        AnomalyLog?
+  createdAt      DateTime @default(now())
+}
+
+model VerificationLog {
+  id        String   @id @default(uuid())
+  logId     String   @unique
+  status    String
+  reason    String
+  createdAt DateTime @default(now())
+  agentLog  AgentLog @relation(fields:[logId], references:[id])
+}
+
+model AnomalyLog {
+  id        String   @id @default(uuid())
+  logId     String   @unique
+  status    String
+  anomalies Json
+  createdAt DateTime @default(now())
+  agentLog  AgentLog @relation(fields:[logId], references:[id])
+}
