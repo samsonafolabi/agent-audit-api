@@ -2,6 +2,8 @@
 
 A production-grade observability and security layer for AI agents. Ingests execution logs, automatically verifies intent vs outcome, and detects behavioral anomalies over time.
 
+**Live API:** `https://agent-audit-api-gtof.onrender.com`
+
 ---
 
 ## What It Does
@@ -14,6 +16,7 @@ As AI agents become more autonomous, the question of _"did it actually do what i
 | **Verification**      | Compares declared intent vs actual outcome, flags mismatches                      |
 | **Anomaly Detection** | Tracks response time and tool usage per agent over time, flags statistical spikes |
 | **Querying**          | Filter logs by verification status, anomaly detection, agent ID, and time range   |
+| **Security**          | All routes protected via API key authentication                                   |
 
 ---
 
@@ -21,9 +24,10 @@ As AI agents become more autonomous, the question of _"did it actually do what i
 
 - **Runtime** — Next.js 16 (App Router, Route Handlers)
 - **Language** — TypeScript
-- **Database** — SQLite (via Prisma ORM)
+- **Database** — PostgreSQL (via Prisma ORM)
 - **Validation** — Zod
 - **ORM** — Prisma with full migration history
+- **Deployment** — Render
 
 ---
 
@@ -65,9 +69,19 @@ AgentLog
 
 ## API Reference
 
+> All endpoints require an `x-api-key` header. Requests without a valid key are rejected.
+
+```bash
+# No key → 401 Unauthorized
+# Wrong key → 403 Forbidden
+# Valid key → request proceeds
+```
+
+---
+
 ### POST `/api/ingest`
 
-Ingest an agent execution log. Automatically runs verification and anomaly detection.
+Ingest an agent execution log. Automatically runs verification and anomaly detection on every submission.
 
 **Request Body**
 
@@ -108,11 +122,12 @@ Ingest an agent execution log. Automatically runs verification and anomaly detec
 Retrieve all logs. Supports filtering via query params.
 
 **Query Params**
-| Param | Description | Example |
-|-------|-------------|---------|
-| `agentId` | Filter by agent | `?agentId=agent-x` |
-| `status` | Filter by verification status | `?status=fail` |
-| `anomaly` | Filter by anomaly status | `?anomaly=Detected` |
+
+| Param     | Description                   | Example             |
+| --------- | ----------------------------- | ------------------- |
+| `agentId` | Filter by agent               | `?agentId=agent-x`  |
+| `status`  | Filter by verification status | `?status=fail`      |
+| `anomaly` | Filter by anomaly status      | `?anomaly=Detected` |
 
 **Examples**
 
@@ -162,6 +177,31 @@ Retrieve a single log by ID, including verification and anomaly results.
 
 ```bash
 GET /api/ingest/a85b509b-e1fc-4e38-aa56-5b39c36d6852
+```
+
+---
+
+### GET `/api/stats/agents`
+
+Returns mismatch rates per agent — ranked by how often their intent doesn't match their outcome.
+
+**Response**
+
+```json
+[
+  {
+    "agentId": "agent-x",
+    "totalRuns": 20,
+    "mismatches": 15,
+    "mismatchRate": 0.75
+  },
+  {
+    "agentId": "agent-y",
+    "totalRuns": 10,
+    "mismatches": 3,
+    "mismatchRate": 0.3
+  }
+]
 ```
 
 ---
@@ -216,6 +256,7 @@ First-time agents (no history) are skipped — no false positives on new agents.
 
 - Node.js 18+
 - npm
+- PostgreSQL database (or use [Render](https://render.com) free tier)
 
 ### Installation
 
@@ -225,10 +266,19 @@ cd agent-audit-api
 npm install
 ```
 
+### Environment Variables
+
+Create a `.env` file at the project root:
+
+```
+DATABASE_URL="postgresql://user:password@host:5432/dbname"
+API_KEY="your-secret-api-key"
+```
+
 ### Database Setup
 
 ```bash
-npx prisma migrate dev
+npx prisma db push
 ```
 
 ### Run Development Server
@@ -253,27 +303,33 @@ npx prisma studio
 agent-audit-api/
 ├── app/
 │   └── api/
-│       └── ingest/
-│           ├── route.ts          # POST + GET all
-│           └── [id]/
-│               └── route.ts      # GET by ID
+│       ├── ingest/
+│       │   ├── route.ts          # POST + GET all
+│       │   └── [id]/
+│       │       └── route.ts      # GET by ID
+│       └── stats/
+│           └── agents/
+│               └── route.ts      # GET mismatch rates per agent
 ├── lib/
 │   ├── prisma.ts                 # Prisma client
 │   ├── logVerification.ts        # Intent vs outcome verification logic
 │   └── anomalyDetection.ts       # Behavioral anomaly detection logic
-├── prisma/
-│   ├── schema.prisma             # Database schema
-│   └── migrations/               # Migration history
+├── proxy.ts                      # API key authentication (all routes)
+└── prisma/
+    └── schema.prisma             # Database schema
 ```
 
 ---
 
 ## Roadmap
 
-- [ ] Query agents by highest mismatch rate
-- [ ] API key authentication middleware
-- [ ] Switch to PostgreSQL for production
-- [ ] Deploy to Railway with live URL
+- [x] Structured ingestion with Zod validation
+- [x] Intent vs outcome verification engine
+- [x] Statistical anomaly detection per agent
+- [x] Filtering by verification status, anomaly, agent ID
+- [x] Mismatch rate stats per agent
+- [x] API key authentication on all routes
+- [x] PostgreSQL + deployed on Render
 - [ ] Testing suite
 
 ---
