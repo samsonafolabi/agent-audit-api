@@ -1,6 +1,6 @@
 # Agent Audit API
 
-A production-grade observability and security layer for AI agents. Ingests execution logs, automatically verifies intent vs outcome, and detects behavioral anomalies over time.
+An observability and security layer for AI agents. Ingests execution logs, automatically verifies intent vs outcome, and detects behavioral anomalies over time.
 
 **Live API:** `https://agent-audit-api-gtof.onrender.com`
 
