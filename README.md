@@ -330,7 +330,7 @@ agent-audit-api/
 - [x] Mismatch rate stats per agent
 - [x] API key authentication on all routes
 - [x] PostgreSQL + deployed on Render
-- [ ] Testing suite
+- [x] Testing suite
 
 ---
 
